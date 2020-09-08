@@ -1,0 +1,79 @@
+---
+layout:     post
+title:      "JAVA8 更强大的接口"
+subtitle:   "JAVA8，接口"
+date:       2019-04-14
+author:     "Paul"
+header-img: "img/12.jpg"
+tags:
+    - JAVA8
+    - 接口
+---
+
+
+
+> JAVA8 新特性
+
+在JDK 1.7及更老的版本中，接口中只能包含常量与抽象方法，在JDK 1.8中，接口允许包含非抽象的default方法以及static 方法，方法里面有具体的实现。
+
+**复习面向接口编程**
+在多数情况下，我们使用接口来体现多态性。
+```java
+//所有手机都有打电话接口
+public interface Callable {
+    void call();
+}
+
+//不同的手机都实现了这个接口，拥有了打电话功能
+public class IPhone implements Callable {
+    @Override
+    public void call() {
+        System.out.println("用iPhone手机打电话");
+    }
+}
+public class Galaxy implements Callable {
+    @Override
+    public void call() {
+        System.out.println("用Galaxy手机打电话");
+    }
+}
+//有了接口，我们在打电话时就可以屏蔽掉不同手机之间的差别，只专注于打电话功能即可。
+
+public class PowerfulInterface {
+ 
+    private static void usePhone(Callable phone) {
+        phone.call();
+    }
+ 
+    @Test
+    public void testPhone() throws Exception {
+        usePhone(new IPhone());
+        usePhone(new Galaxy());
+    }
+}
+```
+
+
+**接口升级**
+如果我们想在Callable接口中除了普通的call方法之外在加上一个autoCall方法，应该怎么办？如果继续添加抽象方法，那么实现类必须重写。
+常见的作法是定义一个新的接口来集成已有接口并添加新的内容，使需要使用autoCall方法的实现类继承新的接口。
+
+**JDK 1.8的解决方案**
+在接口名称不变的情况下，追加新的方法定义，对已有的若干实现类不产生任何影响。这种方法需要使用default修饰并指定方法实现，被称为默认方法。
+
+```
+public interface Callable {
+    void call();
+    default void autoCall() {
+        System.out.println("自动拨号打电话");
+    }
+}
+
+//实现类不需要任何修改，保证了接口的向后兼容性
+private static void usePhone(Callable phone) {
+    phone.call();
+    phone.autoCall();
+}
+```
+
+在Java 7之前想要在定义好的接口中加入新的抽象方法是很困难甚至不可能的，因为所有实现了该接口的类都要进行修改。以前很多编程时不得不使用的设计模式可能不需要了，比如适配器模式可以完全使用接口的默认方法替代。

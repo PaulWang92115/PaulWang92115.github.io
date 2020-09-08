@@ -1,0 +1,144 @@
+---
+layout:     post
+title:      "JAVA并发编程之线程的创建"
+subtitle:   "JAVA，并发，线程"
+date:       2019-04-22
+author:     "Paul"
+header-img: "img/13.jpg"
+tags:
+    - JAVA
+    - 并发
+    - 线程
+---
+
+
+
+> JAVA并发编程
+
+在Java中创建一个线程有三种方式。
+
+**继承Thread**
+定义一个线程类并继承Thread类，重写里面的run方法。因为java是单继承的，所以并不推荐这种方式。
+```java
+public class Main {            
+      public static void main(String[] args) throws Exception {     
+          myThread th1 = new myThread();
+          myThread th2 = new myThread();
+          th1.start();
+          th2.start();
+     }           
+}
+
+class myThread extends Thread {    
+    public void run() {
+        for(int i = 0; i < 5; i++) {
+            System.out.println(Thread.currentThread().getName() + "运行 : " + i );
+        }
+    }
+}
+
+```
+
+**实现Runnable**
+定义一个线程类并实现Runnable接口，使用的时候把这个Runnable实例传入到Thread类中即可。
+
+```java
+public class Main {            
+      public static void main(String[] args) throws Exception {   
+          myThread myth = new myThread();
+          Thread th1 = new Thread(myth);
+          Thread th2 = new Thread(myth);
+          th1.start();
+          th2.start();
+     }           
+}
+
+class myThread implements Runnable {
+    
+    public void run() {
+        for(int i = 0; i < 5; i++) {
+            System.out.println(Thread.currentThread().getName() + "运行 : " + i );
+        }
+    }
+}
+```
+
+**实现Callable接口**
+创建线程类并实现Callable接口，重写call方法，这个方法会有返回值。使用FutureTask对象作为Thread对象的target创建并启动新线程。
+```java
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
+
+public class Main {
+
+    public static void main(String[] args) {
+        ThreadDemo td = new ThreadDemo();
+
+        // 1.执行Callable方式，需要FutureTask实现类的支持，用于接收运算结果
+        FutureTask<Integer> result = new FutureTask<>(td);
+        new Thread(result).start();
+
+        // 2.接收线程运算后的结果
+        Integer sum;
+        try {
+            //等所有线程执行完，获取值，因此FutureTask 可用于 闭锁
+            sum = result.get();
+            System.out.println("-----------------------------");
+            System.out.println(sum);
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+        }
+    }
+} 
+class ThreadDemo implements Callable<Integer> {
+
+    @Override
+    public Integer call() throws Exception {
+        int sum = 0;
+        for (int i = 0; i <= 10; i++) {
+            System.out.println(i);
+            sum += i;
+        }
+        return sum;
+    }
+}
+```
+
+
+
+问题1 ：调用 start 方法和直接调用 run 方法有什么区别？
+
+当然，确实可以直接调用 run 方法，只是相当于调用实例的某个方法，并没有启动线程去执行这个方法。调用 start 是启动一个线程，在线程中执行 run 里面的方法。
+
+
+
+下面我们来看看，这种 Thread(new Runnable()) 方法为什么要这么写。
+
+我们的算法已经定了，但是一些逻辑是多变的，我们就把它抽象出去，让子类去实现它。Thread 也使用了这种模版方法的技巧。
+
+```java
+//模版方法需要改成抽象类和抽象方法
+public class Template {
+
+    // 这个方法不想被子类改变
+    public final void print(String message){
+        System.out.println("!!!!!!!!!!!!!!!");
+        wrapPrint(message);
+        System.out.println("!!!!!!!!!!!!!!!");
+    }
+
+    protected  void wrapPrint(String message){};
+
+    public static void main(String[] args) {
+        Template t = new Template(){
+            @Override
+            protected void wrapPrint(String message) {
+                System.out.println(message);
+            }
+        };
+        t.print("hello");
+    }
+}
+```
+

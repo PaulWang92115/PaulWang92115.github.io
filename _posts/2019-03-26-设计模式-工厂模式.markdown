@@ -1,0 +1,137 @@
+---
+layout:     post
+title:      "设计模式-工厂模式"
+subtitle:   "设计模式，工厂，后端，Java"
+date:       2019-03-26
+author:     "Paul"
+header-img: "img/post-bg-unix-linux.jpg"
+tags:
+    - 后端开发
+    - 设计模式
+    - 工厂
+---
+
+工厂模式顾名思义就是利用工厂去生产某些实例对象，他最大的作用也是用来替代new产生对象的一种模式。创建对象大家第一个想到的是利用A a = new A();这种方法，但如果A的构造需要其他类的某些参数的时候，这个实例对象的构建过程就相当复杂，程序耦合度也非常高，一旦构建对象所依赖的某个类改了之后所有使用new的代码都需要维护，工厂模式就是用来替代new方法产生的。统一使用某个工厂方法来构建一个或者多个对象。
+
+
+
+简单来说，任何使用复杂对象的地方都可以使用工厂模式。
+
+
+
+**普通工厂模式**
+
+两个实例类实现了同一个接口，在定义一个工厂类根据不同的参数new出来不同的对象。
+
+![屏幕快照 2019-03-26 下午8.50.42](/Users/wangshuai/Desktop/屏幕快照 2019-03-26 下午8.50.42.png)
+
+共同的接口
+
+```java
+public interface Sender {  
+    public void Send();  
+}  
+```
+
+两个不同的实现类
+
+```java
+public class MailSender implements Sender {  
+    @Override  
+    public void Send() {  
+        System.out.println("this is mailsender!");  
+    }  
+}  
+public class SmsSender implements Sender {  
+  
+    @Override  
+    public void Send() {  
+        System.out.println("this is sms sender!");  
+    }  
+}  
+```
+
+工厂类
+
+```java
+public class SendFactory {  
+  
+    public Sender produce(String type) {  
+        if ("mail".equals(type)) {  
+            return new MailSender();  
+        } else if ("sms".equals(type)) {  
+            return new SmsSender();  
+        } else {  
+            System.out.println("请输入正确的类型!");  
+            return null;  
+        }  
+    }  
+}  
+```
+
+这样一个简单工厂方法就写完了，可以根据不同参数构建不同的实例对象。
+
+
+
+简单工厂模式的缺点也很明显，如果需要在方法里写很多与对象创建相关的业务代码，而且需创建的对象还不少的话，就要在简单工厂类里写很多个方法。这个简单工厂类会变的庞大臃肿，耦合性高。
+
+
+
+**工厂模式**
+
+对简单工厂模式进一步解藕就是工厂模式了，在工厂模式中一个子类对应一个工厂类，这些工厂类都实现于同一个抽象接口。
+
+![屏幕快照 2019-03-26 下午9.02.50](/Users/wangshuai/Desktop/屏幕快照 2019-03-26 下午9.02.50.png)
+
+
+
+工厂接口
+
+```java
+public interface Factory {
+    public Operation createOperation() ;
+}
+```
+
+
+
+具体的工厂类
+
+```java
+// 加法类工厂
+public class AddFactory implements Factory{
+ 
+    public Operation createOperation() {
+        System.out.println("加法运算");
+        return new Add();
+    }
+}
+ 
+// 减法类工厂
+public class SubFactory implements Factory{
+ 
+    public Operation createOperation() {
+        System.out.println("减法运算");
+        return new Sub();
+    }
+}
+```
+
+
+
+实现
+
+```java
+ // 使用反射机制实例化工厂对象，因为字符串是可以通过变量改变的
+Factory addFactory = (Factory) Class.forName("org.zero01.factory.AddFactory").newInstance();
+Factory subFactory=(Factory) Class.forName("org.zero01.factory.SubFactory").newInstance();
+ 
+// 通过工厂对象创建相应的实例对象
+Operation add = addFactory.createOperation();
+Operation sub = subFactory.createOperation();
+```
+
+工厂模式的缺点是每增加一个产品类，就需要增加一个对应的工厂类，增加了额外的开发量。类的创建依赖于工厂类，也就是说，如果想要拓展程序，必须对工厂类进行修改，违背了闭包的原则。
+
+
+

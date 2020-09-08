@@ -1,0 +1,86 @@
+---
+layout:     post
+title:      "虚拟机性能监控与故障处理工具"
+subtitle:   "性能监控，命令行工具，可视化工具"
+date:       2019-03-31
+author:     "Paul"
+header-img: "img/post-bg-unix-linux.jpg"
+tags:
+    - JVM
+    - 性能监控
+    - 故障处理
+    - 命令行工具
+    - 可视化工具
+---
+
+> 深入了解JVM系列
+
+
+
+**概述**
+
+对一个系统问题定位时，数据是依据，工具是运用知识处理数据的手段。这里的数据包括：运行日志，异常堆栈，GC日志，线程快照，堆转储快照等等。
+
+
+
+**JDK命令行工具**
+
+在JDK的bin目录，除了Java和Javac，还有一些比较好用的JDK工具帮我们区定位系统问题。实际上他们都是对tools.jar类库里面的接口的简单封装，但让你也可以在应用程序中实现功能强大的监控分析功能。
+
+
+
++ jstat：虚拟机统计信息监视工具
+
+  JVM Statistics Monitoring Tool是用于监视虚拟机个总运行状态信息的命令行工具。它可以显示本地或者远程虚拟机进程中的类装载，内存，垃圾收集，JIT编译等运行数据。
+
+  下面这些参数没必要硬去记下来，有个印象，除了问题知道来jstat找就可以了。
+
+  ![canshu](/imgblog/canshu.png)
+
+  下面演示用-gcutil来监视堆内存状况。
+
+  ![jstat](/imgblog/jstat.png)
+
+  结果表明：这台服务器的Eden区（E，表示Eden）使用了6.2%的空间，两个Survivor区（S0，S1）里面都是空的，老年代（O，表示Old）和永久代（方法区，P表示Permanent）则分别使用了41.42%和47.20%的空间。程序运行以来共发生Minor GC 16次，Full GC 3次。
+
++ jinfo：Java配置信息工具
+
+  Configuration info for Java的作用是实时地查看和调整虚拟机的各项参数。使用info  -flag 参数名 pid就可以查看这个参数的值。
+
+  ![jinfo](/imgblog/jinfo.png)
+
++ jmap：Java内存映像工具
+
+  Memory Map for Java命令用于生成堆转储快照（一般称为heapdump或者dump文件）。jmap的作用并不仅仅是为了获取dump文件，它还可以查询finalize执行队列，Java堆和永久代的详细信息，比如空间使用率，当前用的是那种收集器等。下面这几个参数可以简单的了解一下：
+
+  ![jamp](/imgblog/jamp.png)
+
+  下面是用jamp生成一个正在运行的Eclipse的dump快照文件的例子，3500是通过jps命令查询到的LVMID。
+
+  ![jampdump](/imgblog/jampdump.png)
+
+  也可以使用 -XX：+HeapDumpOnOutOfMemoryError参数，可以让虚拟机在OOM异常出现之后自动生成dump文件。
+
++ jhat：虚拟机堆转储快照分析工具
+
+  JVM Heap Analysis Tool命令一般与jamp搭配使用，来分析jamp生成的堆转储快照。实际情况中使用比较少，因为他的整体功能比较简陋。有一些专业的分析工具，比如VisualVM，Eclipse Memory Analyzer等等比较专业和好用。
+
++ jstack：Java堆栈跟踪工具
+
+  Stack Trace for Java命令用于生成虚拟机当前线程的快照（一般为threaddump或javacore文件）。线程快照就是当前虚拟机内每一条线程正在执行的方法堆栈的集合。目的是定位线程长时间停顿的原因，比如线程死锁，死循环，请求资源时间过长等问题的原因。
+
+  几个简单的参数，了解一下即可。
+
+  ![jstack](/imgblog/jstack.png)
+
+  在1.5的Thread类中新增了一个getAllStackTrances()方法用于获取虚拟机中所有线程的StackTraceElement对象，使用这个方法通过简单几行代码就能完成jstack的大部分功能。
+
+**JDK命令行工具**（不做具体讲解，后面会有专门的JVM内存分析工具使用讲解）
+
+JDK除了提供大量的命令行工具外，还有两个功能强大的可视化工具：JConsole和VisualVM。
+
+下面是JComsole的主界面。
+
+![JConsole](/imgblog/JConsole.png)
+
+VisualVM是一款多合一故障处理工具。运行监视，故障处理还有性能分析（比那些收费软件也不逊色）。

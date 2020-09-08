@@ -1,0 +1,79 @@
+---
+layout:     post
+title:      "JAVA并发编程之线程池"
+subtitle:   "JAVA，并发，线程池"
+date:       2019-04-22
+author:     "Paul"
+header-img: "img/13.jpg"
+tags:
+    - JAVA
+    - 并发
+    - 线程池
+---
+
+
+
+> JAVA并发
+
+多线程的环境下频繁的创建和销毁线程对于性能的影响还是非常大的，所以很多时候会配合线程池来工作。线程池为了我们维护线程的生命周期，减少因为创建和销毁线程带来的性能损耗。
+
+**需要注意的问题**
+使用线程池也有风险，比如死锁，资源不足，并发错误，线程泄露，请求过载等问题。
+
+**ThreadPoolExecutor**
+ThreadPoolExecutor是线程池最为核心的类，通过这个类的构造方法，我们会发现这个类有几个非常核心的参数。
+```java
+    public ThreadPoolExecutor(int corePoolSize,int maximumPoolSize,long keepAliveTime,TimeUnit unit,
+        BlockingQueue<Runnable> workQueue,ThreadFactory threadFactory,RejectedExecutionHandler handler);
+```
+
+* corePoolSize，核心线程数。
+* maximumPoolSze，最大线程数。
+* workQueue：用于缓存任务的阻塞队列。
+  如果没有空闲线程执行该任务且当且运行线程少于corePoolSize，则创建新线程。
+  如果当前线程数等于corePoolSize且阻塞队列未满，则将任务放入阻塞队列中。
+  如果没有空闲线程且阻塞队列满了，运行线程书小于maximumPoolSize，则继续创建线程，否则执行拒绝策略。
+  常用的三种任务缓存队列。
+| 名称                | 描述                                                    |
+| ------------------- | ------------------------------------------------------- |
+| ArrayBlockingQueue  | 基于数组的先进先出队列，创建时必须指定大小              |
+| LinkedBlockingQueue | 基于链表的先进先出队列，如果没有指定大小则为int的最大值 |
+| SynchronousQueue    | 不会保存提交的任务，而是直接创建一个线程来执行新的任务  |
+* keepAliveTime：标识空闲线程的存活时间。
+* TimeUnitunit：keepAliveTime的单位。
+  执行完任务后，如果没有新的任务，空闲一定事件后，超过核心线程数的线程就会被销毁。
+* handler：当workQueue已满，且池中的线程达到maximumPoolSize时，线程池拒绝添加新任务时采取的策略。
+| 策略                | 描述                                 |
+| ------------------- | ------------------------------------ |
+| AbortPolicy         | 丢弃任务并抛出RejectException异常    |
+| DiscardPolicy       | 丢弃任务，但是不抛出异常             |
+| DiscardOldestPolicy | 丢弃任务队列末尾的任务，尝试加入队列 |
+| CalerRunsPolicy     | 尝试由调用的线程处理该任务，主线程   |
+* threadFactory：指定创建线程的工厂。
+
+![threadpool](/imgblog/threadpool.png)
+
+
+**几种常用的线程池**
+* FixedThreadPool
+  创建一个固定大小的线程池，核心线程数和最大线程数相等，意味着该线程池只包含核心线程。KeepAliveTime为0L标识一旦任务执行完毕，空闲线程会被立即回收。
+  任务队列为LinkedBlockingQueue（无界阻塞队列），超过核心线程数的任务会被放入任务队列中。
+* CachedThreadPool
+  CachedThreadPool的核心线程数为0，最大线程数为Integer.MAX_VALUE，这也意味着所有线程都是非核心线程。线程执行任务完毕后可以存活60秒来等待匹配任务。适合用于大量需要立即执行且周期较短的任务。
+  任务队列为SynchronousQueue的阻塞队列，这个队列必须等待其他线程取走后才能继续添加，相当于缓存为1的阻塞队列。
+* SingleThreadExecutor
+  核心线程数为1的单线程池，任务队列为LinkeBlockingQueue，该线程池会把任务放入该无界阻塞队列中一个一个执行。任务执行具有顺序性。
+* ScheduledThreadPool
+  固定的核心线程数以及Integer.MAX_VALUE的非核心线程数。可以实现延时和周期性循环任务。
+  任务队列为Delayed Work Queue（延时队列），根据任务的排列顺序，将先执行的任务放在队列前端。
+
+**使用示例**
+只需要将Runnable接口的实现类交给线程池的execute方法即可。
+```java
+Executor executor = Executors.newSingleThreadExecutor();
+executor.execute(new Runnable(){
+    public void run(){
+       //执行的任务    
+  }
+}
+```

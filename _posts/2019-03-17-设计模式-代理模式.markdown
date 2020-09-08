@@ -1,0 +1,209 @@
+---
+layout:     post
+title:      "设计模式-代理模式"
+subtitle:   "设计模式，代理，后端，Java"
+date:       2019-03-17
+author:     "Paul"
+header-img: "img/post-bg-js-version.jpg"
+tags:
+    - 后端开发
+    - 设计模式
+    - 代理
+---
+
+代理模式时比较重要的一种设计模式，在程序中使用的场景也比较多，它提供了对目标对象另外的访问方式，即通过代理对象访问目标对象。这样做的好处是：可以在目标对象实现的基础上，增强额外的功能操作，即扩展目标对象的功能。
+
+编程思想：不要随意去修改别人已经写好的代码或者方法，如果需要修改，可以通过代理模式来扩展该方法。
+
+![proxy](/Users/wangshuai/Desktop/proxy.png)
+
+
+
+**静态代理**
+
+静态代理通常用于对原有业务逻辑的扩充。创建一个代理类实现和被代理类相同的方法，而且代理类必须持有被代理类的对象，这样在被代理类中可以通过这个对象调用代理类的方法，来达到添加我们所需要的业务逻辑的目的。
+
+一个典型的代理模式通常有三个角色，这里称为"代理三要素"。
+
+* 代理类和被代理类需要实现相同的接口
+
+  ```java
+  public interface Action {
+      public void doSomething();
+  }
+  ```
+
+  
+
+* 被代理的对象
+
+  ```java
+  public class RealObject implements Action{
+   
+      public void doSomething() {
+          System.out.println("do something");
+      }
+  }
+  ```
+
+  
+
+* 代理对象，要持有被代理对象的引用
+
+  ```java
+  ublic class Proxy implements Action {
+      private Action realObject;
+   
+      public Proxy(Action realObject) {
+          this.realObject = realObject;
+      }
+      public void doSomething() {
+          System.out.println("proxy do");
+          realObject.doSomething();
+      }
+  }
+  ```
+
+  
+
+优点：是对于原有功能的扩展，不侵入源代码。
+
+缺点：每代理一个类就需要去创建一个被代理类，整个系统会变的非常臃肿和复杂。
+
+
+
+**JDK动态代理**
+
+动态代理的目的就是为了解决静态代理的缺点。通过动态代理我们可以在运行时，动态生成一个持有被代理对象，并实现代理接口的Proxy，同时注入我们相同的扩展逻辑。哪怕你要代理的是不同的对象，甚至代理不同的方法，都可以通过动态代理，来扩展功能。
+
+运行时才生成字节码文件，然后才加载到JVM中，静态代理是编译后就生成了。
+
+* 使用JDK动态代理，需要将扩展的功能写在一个InvocationHandler实现类里：
+
+  ```java
+  public class DynamicProxyHandler implements InvocationHandler {
+      private Object realObject;
+   
+      public DynamicProxyHandler(Object realObject) {
+          this.realObject = realObject;
+      }
+   
+      public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+          //代理扩展逻辑
+          System.out.println("proxy do");
+   
+          return method.invoke(realObject, args);
+      }
+  }
+  ```
+
+  传入被代理对象，通过反射的方法调用被代理对象的方法，然后加上代理的逻辑。
+
+* handler的用法
+
+  ```java
+  public static void main(String[] args) {
+          RealObject realObject = new RealObject();
+          Action proxy = (Action) Proxy.newProxyInstance(ClassLoader.getSystemClassLoader(), new Class[]{Action.class}, new DynamicProxyHandler(realObject));
+          proxy.doSomething();
+  }
+  ```
+
+  传入共同接口：Action，被代理的实例realObject，返回代理的类Proxy的实例。与静态代理很类似，只不过这个代理类Proxy是Java帮我们写好的。
+
+
+
+**CGLIB动态代理**
+
+原理是在内存中动态生成一个被代理类的子类从而实现对目标对象功能的扩展。JDK动态代理有一个限制，就是动态代理的对象必须实现一个或者多个接口，CGLIB没有。CGLIB底层是用过字节码处理框架ASM来转换字节码并生成新的类。
+
+
+
+* 被代理类
+
+  ```java
+  public class UserDao{
+      public void save() {
+          System.out.println("保存数据");
+      }
+  }
+  ```
+
+  
+
+* 代理对象实现MethodInterceptor接口
+
+  ```java
+  private Object target;//维护一个目标对象
+      public ProxyFactory(Object target) {
+          this.target = target;
+      }
+      
+      //为目标对象生成代理对象
+      public Object getProxyInstance() {
+          //工具类
+          Enhancer en = new Enhancer();
+          //设置父类
+          en.setSuperclass(target.getClass());
+          //设置回调函数
+          en.setCallback(this);
+          //创建子类对象代理
+          return en.create();
+      }
+  
+      @Override
+      public Object intercept(Object obj, Method method, Object[] args, MethodProxy proxy) throws Throwable {
+          System.out.println("开启事务");
+          // 执行目标对象的方法
+          Object returnValue = method.invoke(target, args);
+          System.out.println("关闭事务");
+          return null;
+      }
+  }
+  ```
+
+  通过传入的被代理类，生成其子类，设置回调方法为intecept方法，也是通过反射调用被代理类的方法。
+
+* 生成代理类
+
+  ```java
+   public void testCglibProxy(){
+          //目标对象
+          UserDao target = new UserDao();
+          System.out.println(target.getClass());
+          //代理对象
+          UserDao proxy = (UserDao) new ProxyFactory(target).getProxyInstance();
+          System.out.println(proxy.getClass());
+          //执行代理对象方法
+          proxy.save();
+      }
+  ```
+
+  返回结果为被代理类的子类。
+
+
+
+JDK动态代理必须实现InvocationHandler接口，通过反射代理方法，比较消耗系统性能，但可以减少被代理类的数量，比静态代理灵活。
+
+CGLIB动态代理无需实现接口，通过字节码生成技术生成对应类的子类，比反射稍快，不存在性能问题，因为需要继承，所以目标对象不能是final的类。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#### 著作权声明
+
+
+作者 [王帅](https://paulwang92115.github.io)，转载请保留以上链接
